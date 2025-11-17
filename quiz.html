@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Data Science ESIEE</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #0078d4;
+      --accent-light: rgba(0, 120, 212, 0.15);
+      --border: rgba(128, 128, 128, 0.35);
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --text: #111;
+      --text-muted: #555;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #f6f8fb, #dfe9f3);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    body.dark {
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fdfdfd;
+      --text: #fdfdfd;
+      --text-muted: #d0d0d0;
+      --border: rgba(255, 255, 255, 0.2);
+      --card-bg: rgba(0, 0, 0, 0.25);
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 2vw, 2.4rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-bottom: 1.5rem;
+      align-items: flex-end;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    select,
+    input[type="search"] {
+      padding: 0.45rem 0.6rem;
+      min-width: 220px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      background-color: rgba(255, 255, 255, 0.85);
+      color: inherit;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--accent);
+      color: white;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button.secondary {
+      background-color: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #quiz {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1rem;
+    }
+
+    .question-card {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 16px;
+      padding: 1rem 1.2rem;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      position: relative;
+    }
+
+    body.dark .question-card {
+      background: var(--card-bg);
+    }
+
+    .question-card.correct {
+      border-color: #107c10;
+      box-shadow: 0 0 0 2px rgba(16, 124, 16, 0.2);
+    }
+
+    .question-card.incorrect {
+      border-color: #c50f1f;
+      box-shadow: 0 0 0 2px rgba(197, 15, 31, 0.2);
+    }
+
+    .question-card.unanswered {
+      border-style: dashed;
+    }
+
+    .badge {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+    }
+
+    .tags span {
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background-color: var(--accent-light);
+    }
+
+    h2 {
+      font-size: 1.05rem;
+      margin: 0;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .option {
+      display: flex;
+      gap: 0.4rem;
+      align-items: flex-start;
+      padding: 0.45rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .option input {
+      margin-top: 0.2rem;
+    }
+
+    .option.correct-answer {
+      border-color: #107c10;
+      background-color: rgba(16, 124, 16, 0.08);
+    }
+
+    .option.user-choice {
+      border-color: var(--accent);
+    }
+
+    .explanation {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      border-top: 1px dashed var(--border);
+      padding-top: 0.4rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .actions {
+      margin: 1.5rem 0 0.5rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    #score {
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+
+      #quiz {
+        grid-template-columns: 1fr;
+      }
+
+      select,
+      input[type="search"] {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quiz interactif · Révisions Data Science & IA</h1>
+    <p class="subtitle">Questions construites à partir des TD, cours et jeux de données fournis (Flu, Default, CIQUAL, SMS Spam, EMNIST, OCR, etc.).</p>
+  </header>
+
+  <section class="controls">
+    <label>
+      Filtrer par thème
+      <select id="theme-filter"></select>
+    </label>
+    <label>
+      Rechercher un mot-clé
+      <input id="keyword-filter" type="search" placeholder="logistique, OCR, CIQUAL..." />
+    </label>
+    <button id="shuffle-btn" class="secondary" type="button">Mélanger les questions</button>
+  </section>
+
+  <section id="quiz"></section>
+
+  <div class="actions">
+    <button id="check-btn" type="button">Corriger le quiz</button>
+    <button id="reset-btn" class="secondary" type="button">Réinitialiser</button>
+  </div>
+  <p id="score"></p>
+
+  <script>
+    const questions = [
+      {
+        id: 1,
+        question: "Dans FluTrain.csv, quelle variable sert de cible à prédire dans vos modèles de régression ?",
+        options: [
+          "ILI, le taux hebdomadaire de syndromes grippaux",
+          "Queries, le volume de requêtes Google",
+          "Week, l'identifiant textuel de la semaine",
+          "La pente locale de la série temporelle"
+        ],
+        answer: 0,
+        tags: ["Flu", "Régression", "Séries temporelles"],
+        explanation: "L'objectif est de prédire la prévalence ILI (Influenza-Like Illness). Les requêtes Google sont utilisées comme variables explicatives."
+      },
+      {
+        id: 2,
+        question: "Que représente la colonne Queries du jeu FluTrain.csv ?",
+        options: [
+          "Le pourcentage de patients traités dans les hôpitaux",
+          "Une mesure normalisée des recherches Google sur la grippe",
+          "Le nombre de consultations médicales quotidiennes",
+          "La variance locale de la série ILI"
+        ],
+        answer: 1,
+        tags: ["Flu", "Feature Engineering"],
+        explanation: "Queries capture la popularité de termes liés à la grippe dans Google Trends, un proxy utile pour anticiper ILI."
+      },
+      {
+        id: 3,
+        question: "Pourquoi applique-t-on souvent log(ILI) avant d'entraîner un modèle sur FluTrain ?",
+        options: [
+          "Pour compresser les pics et stabiliser la variance",
+          "Pour forcer une distribution parfaitement gaussienne",
+          "Pour supprimer la tendance saisonnière",
+          "Pour éviter les valeurs manquantes"
+        ],
+        answer: 0,
+        tags: ["Flu", "Régression"],
+        explanation: "Le log réduit l'asymétrie de la série et limite l'impact disproportionné des pics épidémiques sur l'ajustement."
+      },
+      {
+        id: 4,
+        question: "Quelle métrique est la plus adaptée pour comparer des modèles sur FluTest.csv si l'on s'intéresse surtout à la gravité des erreurs de pic ?",
+        options: [
+          "RMSE calculé sur log(ILI)",
+          "Précision (accuracy) binaire",
+          "Nombre de semaines correctement classées",
+          "Pseudo R²"
+        ],
+        answer: 0,
+        tags: ["Flu", "Évaluation"],
+        explanation: "Le RMSE sur log(ILI) punit fortement les grandes erreurs, en particulier lors des pics saisonniers."
+      },
+      {
+        id: 5,
+        question: "Quel type de variable dérivée améliore souvent les modèles FluTrain ?",
+        options: [
+          "Des retards (lags) sur ILI et Queries",
+          "Des identifiants numériques arbitraires pour chaque semaine",
+          "Le numéro de version du notebook",
+          "La longueur du fichier CSV"
+        ],
+        answer: 0,
+        tags: ["Flu", "Feature Engineering", "Séries temporelles"],
+        explanation: "Des lags comme ILI_{t-2} capturent l'inertie du signal et améliorent les prévisions de séries temporelles."
+      },
+      {
+        id: 6,
+        question: "Quelle validation croisée est pertinente pour FluTrain ?",
+        options: [
+          "K-fold classique en mélangeant les semaines",
+          "Validation croisée chronologique respectant l'ordre temporel",
+          "Bootstrap sur les observations triées aléatoirement",
+          "Aucune, on teste directement sur FluTrain"
+        ],
+        answer: 1,
+        tags: ["Flu", "Validation"],
+        explanation: "Sur séries temporelles, on évite de mélanger les dates : on valide avec des découpages respectant la chronologie."
+      },
+      {
+        id: 7,
+        question: "Dans Default.csv, quelle est la variable cible de la régression logistique ?",
+        options: [
+          "default (Yes/No)",
+          "balance",
+          "income",
+          "student"
+        ],
+        answer: 0,
+        tags: ["Crédit", "Logistique"],
+        explanation: "La colonne default indique si le client fait défaut, c'est l'étiquette à prédire."
+      },
+      {
+        id: 8,
+        question: "Quel prédicteur est historiquement le plus explicatif d'un défaut dans Default.csv ?",
+        options: [
+          "Le solde de carte de crédit balance",
+          "Le revenu annuel income",
+          "Le numéro de ligne",
+          "Le statut étudiant seul"
+        ],
+        answer: 0,
+        tags: ["Crédit", "Feature Engineering"],
+        explanation: "Les études sur ce dataset montrent que le solde balance est l'indicateur le plus discriminant."
+      },
+      {
+        id: 9,
+        question: "Pourquoi standardiser balance et income avant la régression logistique ?",
+        options: [
+          "Pour accélérer la convergence et interpréter les coefficients",
+          "Pour supprimer les valeurs manquantes",
+          "Pour changer le type de la variable default",
+          "Pour obliger le modèle à être linéaire"
+        ],
+        answer: 0,
+        tags: ["Crédit", "Prétraitement"],
+        explanation: "Des échelles comparables facilitent l'optimisation et rendent les coefficients plus lisibles."
+      },
+      {
+        id: 10,
+        question: "Que faire face au déséquilibre (peu de défauts) de Default.csv ?",
+        options: [
+          "Utiliser des pondérations ou un sous-échantillonnage",
+          "Supprimer les clients sans défaut",
+          "Ajouter du bruit aléatoire",
+          "Remplacer default par une variable continue"
+        ],
+        answer: 0,
+        tags: ["Crédit", "Équilibrage"],
+        explanation: "Des poids inverses ou des techniques de resampling permettent de mieux apprendre la classe rare."
+      },
+      {
+        id: 11,
+        question: "Que signifie un coefficient positif en régression logistique ?",
+        options: [
+          "La probabilité augmente lorsque la variable croît",
+          "La variable est inutilisable",
+          "La classe positive n'existe pas",
+          "Le modèle est mal spécifié"
+        ],
+        answer: 0,
+        tags: ["Théorie", "Logistique"],
+        explanation: "Un coefficient positif indique que l'odds ratio (& odds) augmente avec la variable."
+      },
+      {
+        id: 12,
+        question: "Que se passe-t-il si vous abaissez fortement le seuil de décision d'un modèle de défaut ?",
+        options: [
+          "Le rappel augmente mais le nombre de faux positifs aussi",
+          "La précision augmente sans effet secondaire",
+          "Le modèle devient linéaire",
+          "La matrice de confusion ne change pas"
+        ],
+        answer: 0,
+        tags: ["Évaluation", "Logistique"],
+        explanation: "Un seuil bas capture plus de défauts (rappel) mais génère davantage de fausses alertes."
+      },
+      {
+        id: 13,
+        question: "Quel est l'objectif d'une courbe ROC ?",
+        options: [
+          "Comparer rappel et faux positifs pour tous les seuils",
+          "Visualiser la densité des variables",
+          "Afficher la décomposition en valeurs singulières",
+          "Mesurer la corrélation"
+        ],
+        answer: 0,
+        tags: ["Évaluation", "Logistique"],
+        explanation: "La ROC trace TPR vs FPR pour tous les seuils et résume la capacité de discrimination."
+      },
+      {
+        id: 14,
+        question: "Pourquoi l'AUC est-elle appréciée pour Default.csv ?",
+        options: [
+          "Elle est insensible au déséquilibre et agrège tous les seuils",
+          "Elle maximise automatiquement le rappel",
+          "Elle remplace la validation croisée",
+          "Elle évite d'entraîner le modèle"
+        ],
+        answer: 0,
+        tags: ["Évaluation", "Crédit"],
+        explanation: "L'AUC mesure la probabilité que le score d'un défaut dépasse celui d'un non défaut, même en cas de classes déséquilibrées."
+      },
+      {
+        id: 15,
+        question: "Quel prétraitement est crucial sur CIQUAL.csv avant apprentissage ?",
+        options: [
+          "Unifier le séparateur décimal et convertir les nombres",
+          "Supprimer la colonne Nom",
+          "Dupliquer chaque ligne deux fois",
+          "Ajouter des zéros aux lipides"
+        ],
+        answer: 0,
+        tags: ["CIQUAL", "Prétraitement"],
+        explanation: "Le fichier utilise des virgules comme séparateurs décimaux : il faut les convertir en nombres utilisables."
+      },
+      {
+        id: 16,
+        question: "Pourquoi standardiser les nutriments avant une ACP sur CIQUAL ?",
+        options: [
+          "Les unités diffèrent fortement et biaiseraient les composantes",
+          "Pour rendre la base plus grande",
+          "Pour créer des valeurs manquantes",
+          "Pour forcer des corrélations nulles"
+        ],
+        answer: 0,
+        tags: ["CIQUAL", "ACP"],
+        explanation: "Sans standardisation, l'énergie (grande variance) dominerait l'ACP, occultant les autres minéraux."
+      },
+      {
+        id: 17,
+        question: "Quel type de variable cible traite SMSSpamCollection.txt ?",
+        options: [
+          "Binaire : ham vs spam",
+          "Continue : probabilité",
+          "Ordinale à cinq niveaux",
+          "Série temporelle hebdomadaire"
+        ],
+        answer: 0,
+        tags: ["SMS", "NLP"],
+        explanation: "Chaque SMS est étiqueté ham (non spam) ou spam : c'est une classification binaire."
+      },
+      {
+        id: 18,
+        question: "Quel vecteur de caractéristiques est souvent utilisé sur SMSSpamCollection ?",
+        options: [
+          "Sac de mots pondéré par TF-IDF",
+          "Histogramme de couleurs",
+          "Transformée de Fourier des timestamps",
+          "Compteur de clics"
+        ],
+        answer: 0,
+        tags: ["SMS", "NLP", "Feature Engineering"],
+        explanation: "TF-IDF capture l'importance relative de chaque terme pour distinguer spam et ham."
+      },
+      {
+        id: 19,
+        question: "Si l'on veut éviter d'accuser à tort un ham, quelle métrique prime ?",
+        options: [
+          "La précision (precision)",
+          "Le rappel",
+          "Le RMSE",
+          "Le coefficient de corrélation"
+        ],
+        answer: 0,
+        tags: ["SMS", "Évaluation"],
+        explanation: "Une forte précision garantit que les messages prédits spam sont réellement indésirables."
+      },
+      {
+        id: 20,
+        question: "Pourquoi retirer les stop-words dans SMSSpamCollection ?",
+        options: [
+          "Ils n'apportent pas de signal discriminant et alourdissent le vocabulaire",
+          "Ils contiennent toujours des insultes",
+          "Ils empêchent TF-IDF de converger",
+          "Ils introduisent des valeurs manquantes"
+        ],
+        answer: 0,
+        tags: ["SMS", "NLP"],
+        explanation: "Les mots très fréquents (the, and, le, de) n'aident pas la séparation et gonflent l'espace vectoriel."
+      },
+      {
+        id: 21,
+        question: "Pourquoi limiter la taille du vocabulaire dans un classifieur SMS ?",
+        options: [
+          "Pour éviter le sur-apprentissage et réduire les temps de calcul",
+          "Pour améliorer la compression ZIP",
+          "Pour supprimer les spams",
+          "Pour rendre le modèle linéaire"
+        ],
+        answer: 0,
+        tags: ["SMS", "NLP", "Régularisation"],
+        explanation: "Un vocabulaire restreint se concentre sur les termes les plus informatifs et limite le bruit."
+      },
+      {
+        id: 22,
+        question: "Que représentent les étiquettes d'EMNIST Letters dans OCR ?",
+        options: [
+          "Des caractères manuscrits (lettres) en niveaux de gris",
+          "Des séries financières",
+          "Des sons audio",
+          "Des pixels RGB haute résolution"
+        ],
+        answer: 0,
+        tags: ["EMNIST", "Vision"],
+        explanation: "EMNIST contient des lettres manuscrites issues d'une extension de MNIST."
+      },
+      {
+        id: 23,
+        question: "Quel prétraitement basique applique-t-on aux images EMNIST avant un réseau de neurones ?",
+        options: [
+          "Normaliser les pixels entre 0 et 1",
+          "Ajouter un canal alpha",
+          "Transformer en spectrogramme",
+          "Remplacer par des couleurs"
+        ],
+        answer: 0,
+        tags: ["EMNIST", "Prétraitement"],
+        explanation: "La normalisation permet une optimisation stable et met chaque pixel sur la même échelle."
+      },
+      {
+        id: 24,
+        question: "Quel exemple d'augmentation de données est pertinent pour EMNIST ?",
+        options: [
+          "Légères rotations et translations",
+          "Inversion audio",
+          "Changement de langue",
+          "Permutation aléatoire des labels"
+        ],
+        answer: 0,
+        tags: ["EMNIST", "Data Augmentation"],
+        explanation: "Des rotations de quelques degrés rendent le modèle plus robuste aux variations d'écriture."
+      },
+      {
+        id: 25,
+        question: "Pourquoi préfère-t-on un CNN plutôt qu'une simple couche dense aplatie pour l'OCR EMNIST ?",
+        options: [
+          "Les CNN exploitent la structure spatiale et partagent les poids",
+          "Les CNN sont toujours plus rapides sans condition",
+          "Les couches denses ne peuvent pas apprendre",
+          "Les CNN suppriment le besoin de données"
+        ],
+        answer: 0,
+        tags: ["EMNIST", "Vision", "Modèles"],
+        explanation: "Les convolutions capturent les motifs locaux (traits, boucles) tout en limitant le nombre de paramètres."
+      },
+      {
+        id: 26,
+        question: "Dans 4I_SI2_TD_Representation_Images, quel descripteur simple est souvent utilisé ?",
+        options: [
+          "Histogrammes d'intensité ou de couleurs",
+          "Transformée de Hilbert",
+          "Empreintes audio",
+          "Séquences ADN"
+        ],
+        answer: 0,
+        tags: ["Vision", "Représentation"],
+        explanation: "Les TD utilisent fréquemment des histogrammes (RGB ou niveaux de gris) pour décrire des images."
+      },
+      {
+        id: 27,
+        question: "Quelle première étape réalise-t-on souvent dans l'atelier OCR ?",
+        options: [
+          "Binariser/normaliser l'image pour réduire le bruit",
+          "Appliquer un K-Means sur les libellés",
+          "Convertir l'image en audio",
+          "Supprimer les pixels centraux"
+        ],
+        answer: 0,
+        tags: ["OCR", "Prétraitement"],
+        explanation: "On nettoie l'image (binarisation, centrage) avant d'extraire des features ou d'entraîner un modèle."
+      },
+      {
+        id: 28,
+        question: "Quelle affirmation décrit une matrice de confusion ?",
+        options: [
+          "Elle décompte vrais/faux positifs et négatifs",
+          "Elle stocke les poids du réseau",
+          "Elle contient les valeurs propres",
+          "Elle liste les hyperparamètres"
+        ],
+        answer: 0,
+        tags: ["Évaluation", "Général"],
+        explanation: "La matrice de confusion compare prédictions et vérité terrain pour chaque classe."
+      },
+      {
+        id: 29,
+        question: "Quel score combine précision et rappel ?",
+        options: [
+          "F1-score",
+          "R²",
+          "MAE",
+          "Variance expliquée"
+        ],
+        answer: 0,
+        tags: ["Évaluation", "Général"],
+        explanation: "Le F1 est la moyenne harmonique de précision et rappel, utile sur SMSSpam ou Default."
+      },
+      {
+        id: 30,
+        question: "Que fait la régularisation L2 sur les coefficients d'un modèle ?",
+        options: [
+          "Elle les contracte vers zéro sans les annuler complètement",
+          "Elle les rend tous positifs",
+          "Elle double leur valeur",
+          "Elle supprime la dérivée"
+        ],
+        answer: 0,
+        tags: ["Régularisation", "Général"],
+        explanation: "L2 pénalise les grands coefficients, favorisant des poids plus petits et une meilleure généralisation."
+      },
+      {
+        id: 31,
+        question: "Quel est l'intérêt de l'arrêt anticipé (early stopping) ?",
+        options: [
+          "Couper l'entraînement dès que la validation se dégrade",
+          "Réinitialiser les poids",
+          "Remplacer la régularisation",
+          "Multiplier la taille du dataset"
+        ],
+        answer: 0,
+        tags: ["Régularisation", "Deep Learning"],
+        explanation: "On surveille la perte validation et on arrête avant sur-apprentissage, pratique sur EMNIST ou OCR."
+      },
+      {
+        id: 32,
+        question: "Pourquoi utilise-t-on la validation croisée stratifiée pour Default.csv ?",
+        options: [
+          "Pour conserver le ratio défaut/non défaut dans chaque pli",
+          "Pour augmenter artificiellement le taux de défaut",
+          "Pour mélanger les features",
+          "Pour supprimer la classe majoritaire"
+        ],
+        answer: 0,
+        tags: ["Validation", "Crédit"],
+        explanation: "La stratification garantit que chaque pli représente correctement la classe rare."
+      },
+      {
+        id: 33,
+        question: "Quel avantage offre le bootstrap sur de petits jeux (ex. FluTrain initial) ?",
+        options: [
+          "Estimer la variabilité d'un indicateur sans nouvel échantillon",
+          "Remplacer les tests A/B",
+          "Supprimer la saisonnalité",
+          "Garantir l'indépendance temporelle"
+        ],
+        answer: 0,
+        tags: ["Statistiques", "Séries temporelles"],
+        explanation: "Le bootstrap ré-échantillonne avec remise pour quantifier l'incertitude d'une statistique."
+      },
+      {
+        id: 34,
+        question: "Quel diagnostic surveiller sur les résidus d'un modèle FluTrain ?",
+        options: [
+          "L'autocorrélation des erreurs",
+          "Le nombre de colonnes",
+          "La taille du fichier",
+          "Le nombre de notebooks ouverts"
+        ],
+        answer: 0,
+        tags: ["Flu", "Diagnostic"],
+        explanation: "Des résidus autocorrélés signalent qu'il reste de la structure temporelle non capturée."
+      },
+      {
+        id: 35,
+        question: "Quel objectif poursuit la conversion des SMS en minuscules et la suppression de la ponctuation ?",
+        options: [
+          "Réduire les doublons de tokens et normaliser",
+          "Masquer les URLs",
+          "Empêcher TF-IDF de fonctionner",
+          "Supprimer les spams"
+        ],
+        answer: 0,
+        tags: ["SMS", "Prétraitement"],
+        explanation: "La normalisation textuelle regroupe les variantes orthographiques et simplifie le vocabulaire."
+      }
+    ];
+
+    const themeFilter = document.getElementById("theme-filter");
+    const keywordFilter = document.getElementById("keyword-filter");
+    const quizContainer = document.getElementById("quiz");
+    const scoreBoard = document.getElementById("score");
+    const checkBtn = document.getElementById("check-btn");
+    const resetBtn = document.getElementById("reset-btn");
+    const shuffleBtn = document.getElementById("shuffle-btn");
+
+    let currentQuestions = [...questions];
+
+    const uniqueTags = Array.from(new Set(questions.flatMap((q) => q.tags))).sort();
+
+    function populateFilter() {
+      const options = ["<option value=\"all\">Tous les thèmes</option>", ...uniqueTags.map((tag) => `<option value="${tag}">${tag}</option>`)].join("");
+      themeFilter.innerHTML = options;
+    }
+
+    function renderQuiz(list) {
+      if (!list.length) {
+        quizContainer.innerHTML = '<p class="empty">Aucune question ne correspond aux filtres.</p>';
+        return;
+      }
+
+      quizContainer.innerHTML = list
+        .map(
+          (question, index) => `
+            <article class="question-card" data-qid="${question.id}">
+              <p class="badge">Question ${index + 1} / ${list.length}</p>
+              <div class="tags">${question.tags.map((tag) => `<span>${tag}</span>`).join("")}</div>
+              <h2>${question.question}</h2>
+              <div class="options">
+                ${question.options
+                  .map(
+                    (option, optionIndex) => `
+                      <label class="option">
+                        <input type="radio" name="q${question.id}" value="${optionIndex}" />
+                        <span>${option}</span>
+                      </label>
+                    `
+                  )
+                  .join("")}
+              </div>
+              <p class="explanation hidden">${question.explanation}</p>
+            </article>
+          `
+        )
+        .join("");
+    }
+
+    function applyFilters() {
+      const theme = themeFilter.value;
+      const keyword = keywordFilter.value.trim().toLowerCase();
+      currentQuestions = questions.filter((question) => {
+        const matchTheme = theme === "all" || question.tags.includes(theme);
+        const haystack = [question.question, ...question.options, question.explanation].join(" ").toLowerCase();
+        const matchKeyword = !keyword || haystack.includes(keyword);
+        return matchTheme && matchKeyword;
+      });
+      renderQuiz(currentQuestions);
+      scoreBoard.textContent = "";
+    }
+
+    function evaluateQuiz() {
+      const cards = [...document.querySelectorAll(".question-card")];
+      if (!cards.length) {
+        scoreBoard.textContent = "Aucune question à corriger.";
+        return;
+      }
+
+      let correct = 0;
+      let answered = 0;
+
+      cards.forEach((card) => {
+        const qid = Number(card.dataset.qid);
+        const question = currentQuestions.find((q) => q.id === qid);
+        const selected = card.querySelector('input[type="radio"]:checked');
+        const options = [...card.querySelectorAll('.option')];
+        const explanation = card.querySelector('.explanation');
+
+        card.classList.remove('correct', 'incorrect', 'unanswered');
+        options.forEach((option) => option.classList.remove('correct-answer', 'user-choice'));
+        explanation?.classList.add('hidden');
+
+        if (!question) {
+          return;
+        }
+
+        if (!selected) {
+          card.classList.add('unanswered');
+          return;
+        }
+
+        answered += 1;
+        const selectedIndex = Number(selected.value);
+        options[question.answer]?.classList.add('correct-answer');
+        options[selectedIndex]?.classList.add('user-choice');
+        explanation?.classList.remove('hidden');
+
+        if (selectedIndex === question.answer) {
+          correct += 1;
+          card.classList.add('correct');
+        } else {
+          card.classList.add('incorrect');
+        }
+      });
+
+      scoreBoard.textContent = `Score : ${correct} / ${currentQuestions.length} | Questions répondues : ${answered}`;
+    }
+
+    function resetQuiz() {
+      document.querySelectorAll('input[type="radio"]').forEach((input) => {
+        input.checked = false;
+      });
+      document.querySelectorAll('.question-card').forEach((card) => {
+        card.classList.remove('correct', 'incorrect', 'unanswered');
+        card.querySelectorAll('.option').forEach((option) => option.classList.remove('correct-answer', 'user-choice'));
+        const explanation = card.querySelector('.explanation');
+        explanation?.classList.add('hidden');
+      });
+      scoreBoard.textContent = '';
+    }
+
+    function shuffle(array) {
+      const clone = [...array];
+      for (let i = clone.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [clone[i], clone[j]] = [clone[j], clone[i]];
+      }
+      return clone;
+    }
+
+    populateFilter();
+    renderQuiz(currentQuestions);
+
+    themeFilter.addEventListener('change', applyFilters);
+    keywordFilter.addEventListener('input', applyFilters);
+    checkBtn.addEventListener('click', evaluateQuiz);
+    resetBtn.addEventListener('click', resetQuiz);
+    shuffleBtn.addEventListener('click', () => {
+      currentQuestions = shuffle(currentQuestions);
+      renderQuiz(currentQuestions);
+      resetQuiz();
+    });
+  </script>
+</body>
+</html>
